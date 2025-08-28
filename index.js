@@ -58,9 +58,8 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Ruta de prueba
-app.get('/ping', (req, res) => {
-  res.send('pong');
+app.get('/', (req, res) => {
+  res.send('Servidor funcionando correctamente.');
 });
 
 // 🏁 Puerto
