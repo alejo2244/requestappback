@@ -58,6 +58,11 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// Ruta de prueba
+app.get('/ping', (req, res) => {
+  res.send('pong');
+});
+
 // 🏁 Puerto
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
