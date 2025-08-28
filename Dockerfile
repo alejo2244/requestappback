@@ -14,4 +14,4 @@ RUN npm install
 EXPOSE 3002
 
 # Comando para iniciar la app
-CMD ["npm", "start"]
+CMD ["node", "index.js"]
