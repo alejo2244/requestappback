@@ -15,8 +15,79 @@ datasource db {
 
 model User {
   id        Int     @id @default(autoincrement())  
-  name      String
+  rolId     Int
+  rol       Rol @relation(fields: [rolId], references: [id])
+  companyId Int
+  company   Company @relation(fields: [companyId], references: [id])
+  document  String
+  names     String
+  lastNames String
   email     String  @unique
   password  String
   createdAt DateTime @default(now())
+}
+
+model Company {
+  id                 Int      @id @default(autoincrement())
+  taxId              String   @unique        // NIT
+  businessName       String                  // Razón Social
+  location           String?                 // Ubicación
+  email              String   @unique
+  address            String?                 // Dirección
+  logoUrl            String?                 // Company logo
+  sendConfirmation   Boolean  @default(false) // Checkbox
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  advanceRequests    AdvanceRequest[]
+  users              User[]
+}
+
+model AdvanceRequest {
+  id                  Int      @id @default(autoincrement())
+  companyId           Int
+  company             Company  @relation(fields: [companyId], references: [id])
+ 
+  statusId            Int
+  status              Status   @relation(fields: [statusId], references: [id])
+
+  consecutive         String
+  requestDate         DateTime
+
+  supplierTaxId       String
+  supplierName        String
+  supplierAddress     String?
+  supplierPhone       String?
+
+  costCenter          String
+  concept             String
+  baseAmount          Float
+  vatRate             String
+  vatTotal            Float?
+  approvedPercentage  Float
+  totalAdvance        Float
+  amountToTransfer    Float
+
+  notes               String?
+  responsible         String
+  preparedBy          String
+  approvedBy          String
+
+  documentUrl         String? // PDF file path or URL
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Status {
+  id          Int               @id @default(autoincrement())
+  name        String            @unique
+  description String?
+  requests    AdvanceRequest[]  // Relación inversa
+}
+
+model Rol {
+  id          Int               @id @default(autoincrement())
+  name        String            @unique
+  description String?
+  users       User[]  // Relación inversa
 }

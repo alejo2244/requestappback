@@ -1,0 +1,80 @@
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+// ✅ Create advance request
+exports.createAdvanceRequest = async (req, res) => {
+  try {
+    const request = await prisma.advanceRequest.create({
+      data: {
+        ...req.body,
+        requestDate: new Date(req.body.requestDate), // asegúrate que venga en formato válido
+      },
+    });
+    res.status(201).json(request);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// 📄 Get all requests
+exports.getAllAdvanceRequests = async (req, res) => {
+  const requests = await prisma.advanceRequest.findMany({
+    include: { company: true },
+  });
+  res.json(requests);
+};
+
+// 🔍 Get one request by ID
+exports.getAdvanceRequestById = async (req, res) => {
+  const { id } = req.params;
+  const request = await prisma.advanceRequest.findUnique({
+    where: { id: Number(id) },
+    include: { company: true },
+  });
+  if (!request) return res.status(404).json({ error: 'Request not found' });
+  res.json(request);
+};
+
+// ✏️ Update request
+exports.updateAdvanceRequest = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const updated = await prisma.advanceRequest.update({
+      where: { id: Number(id) },
+      data: req.body,
+    });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.updateAdvanceRequestStatus = async (req, res) => {
+  const { id } = req.params;
+  const { statusId } = req.body;
+
+  if (!statusId) {
+    return res.status(400).json({ error: 'Missing statusId in request body.' });
+  }
+
+  try {
+    const updated = await prisma.advanceRequest.update({
+      where: { id: Number(id) },
+      data: { statusId: Number(statusId) },
+    });
+    res.json({ message: 'Status updated successfully', updated });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// ❌ Delete request
+exports.deleteAdvanceRequest = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.advanceRequest.delete({ where: { id: Number(id) } });
+    res.json({ message: 'Request deleted successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};

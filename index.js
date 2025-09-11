@@ -15,7 +15,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // 📝 Registro
 app.post('/register', async (req, res) => {
-  const { name, email, password, registrationKey } = req.body;
+  const { names, lastNames, document, companyId, rolId, email, password, registrationKey } = req.body;
 
   // Verifica la clave secreta
   if (registrationKey !== process.env.REGISTRATION_SECRET) {
@@ -28,7 +28,7 @@ app.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await prisma.user.create({
-      data: { name, email, password: hashedPassword },
+      data: { names, lastNames, document, companyId, rolId, email, password: hashedPassword },
     });
 
     res.status(201).json({ message: 'Usuario creado', user: { id: newUser.id, email: newUser.email } });
@@ -51,7 +51,7 @@ app.post('/login', async (req, res) => {
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
 
-    res.json({ message: 'Login exitoso', username: user.name, token });
+    res.json({ message: 'Login exitoso', username: user.names + ' ' + user.lastNames, token });
     
   } catch (error) {
     console.error('Error en login:', error);
@@ -62,6 +62,12 @@ app.post('/login', async (req, res) => {
 app.get('/', (req, res) => {
   res.send('Servidor funcionando correctamente.');
 });
+
+// Rutas
+const companyRoutes = require('./routes/companies.routes');
+app.use('/api/companies', companyRoutes);
+const advanceRequestRoutes = require('./routes/advancedRequest.routes');
+app.use('/api/advanceRequest', advanceRequestRoutes);
 
 // 🏁 Puerto
 const PORT = process.env.PORT || 3001;
