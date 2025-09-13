@@ -17,8 +17,6 @@ model User {
   id        Int     @id @default(autoincrement())  
   rolId     Int
   rol       Rol @relation(fields: [rolId], references: [id])
-  companyId Int
-  company   Company @relation(fields: [companyId], references: [id])
   document  String
   names     String
   lastNames String
@@ -35,11 +33,12 @@ model Company {
   email              String   @unique
   address            String?                 // Dirección
   logoUrl            String?                 // Company logo
+  consecutiveId      Int
+  consecutive        Consecutive @relation(fields: [consecutiveId], references: [id])
   sendConfirmation   Boolean  @default(false) // Checkbox
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   advanceRequests    AdvanceRequest[]
-  users              User[]
 }
 
 model AdvanceRequest {
@@ -90,4 +89,12 @@ model Rol {
   name        String            @unique
   description String?
   users       User[]  // Relación inversa
+}
+
+
+model Consecutive {
+  id          Int               @id @default(autoincrement())
+  name        String            @unique
+  description String?
+  Companies   Company[]  // Relación inversa
 }

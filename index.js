@@ -51,11 +51,21 @@ app.post('/login', async (req, res) => {
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
 
-    res.json({ message: 'Login exitoso', username: user.names + ' ' + user.lastNames, token });
+    res.json({ message: 'Login exitoso', username: user.names + ' ' + user.lastNames, userId: user.id, token });
     
   } catch (error) {
     console.error('Error en login:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+app.post('/deleteUser', async (req, res) => {
+  
+  try {
+    await prisma.user.delete({ where: { id: 4 } });
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 
