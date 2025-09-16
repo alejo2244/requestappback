@@ -10,5 +10,6 @@ router.get('/:id', verifyToken, advanceRequestController.getAdvanceRequestById);
 router.put('/:id', verifyToken, advanceRequestController.updateAdvanceRequest);
 router.put('/status/:id', verifyToken, advanceRequestController.updateAdvanceRequestStatus);
 router.delete('/:id', verifyToken, advanceRequestController.deleteAdvanceRequest);
+router.get('/documento/:id', verifyToken, advanceRequestController.downloadPDF);
 
 module.exports = router;

@@ -78,3 +78,68 @@ exports.deleteAdvanceRequest = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+const PDFDocument = require('pdfkit');
+
+exports.downloadPDF = async (req, res) => {
+  const { id } = req.params;
+
+  const solicitud = await prisma.advanceRequest.findUnique({
+    where: { id: Number(id) },
+    include: { company: true }
+  });
+
+  if (!solicitud) {
+    return res.status(404).json({ error: 'Solicitud no encontrada' });
+  }
+
+  const doc = new PDFDocument({ margin: 40 });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename=anticipo_${solicitud.consecutive}.pdf`);
+  doc.pipe(res);
+
+  // 🏷️ Título
+  doc.fontSize(16).text('APROBACIÓN DE ANTICIPO', { align: 'center', underline: true });
+  doc.moveDown();
+
+  // 🧾 Datos generales
+  doc.fontSize(12);
+  doc.text(`Consecutivo: ${solicitud.consecutive}`);
+  doc.text(`Fecha: ${new Date(solicitud.requestDate).toLocaleDateString('es-CO')}`);
+  doc.text(`Contrato: CONT-227`);
+  doc.text(`NIT: ${solicitud.company.taxId}`);
+  doc.text(`Proveedor: ${solicitud.supplierName}`);
+  doc.text(`Teléfono: ${solicitud.supplierPhone}`);
+  doc.text(`Dirección: ${solicitud.supplierAddress}`);
+  doc.moveDown();
+
+  // 🧮 Detalles financieros
+  doc.text(`Centro de costos: ${solicitud.costCenter}`);
+  doc.text(`Concepto: ${solicitud.concept}`);
+  doc.text(`Monto base: $${solicitud.baseAmount.toLocaleString()}`);
+  doc.text(`IVA: ${solicitud.vatRate} - $${solicitud.vatTotal.toLocaleString()}`);
+  doc.text(`Total: $${solicitud.totalAdvance.toLocaleString()}`);
+  doc.text(`Porcentaje aprobado: ${solicitud.approvedPercentage}%`);
+  doc.text(`Valor a transferir: $${solicitud.amountToTransfer.toLocaleString()}`);
+  doc.moveDown();
+
+  // 📝 Observaciones
+  doc.font('Helvetica-Bold').text('Observaciones:', { underline: true });
+  doc.font('Helvetica').text(solicitud.notes || 'N/A');
+  doc.moveDown();
+
+  // 👤 Firmas
+  doc.text(`Responsable: ${solicitud.responsible}`);
+  doc.text(`Preparado por: ${solicitud.preparedBy}`);
+  doc.text(`Aprobado por: ${solicitud.approvedBy}`);
+  doc.moveDown();
+
+  // 📌 Instrucciones en rojo
+  doc.fillColor('red').fontSize(10);
+  doc.text('* Por favor diligenciar los campos sombreados de color gris');
+  doc.text('* El anticipo debe ser autorizado, de acuerdo al destino del anticipo');
+  doc.text('* Radicar por trámite interno en SGD.');
+  doc.text('* Debe venir debidamente firmado en su totalidad');
+  doc.fillColor('black'); // volver al color normal
+
+  doc.end();
+};

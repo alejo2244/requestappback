@@ -4,8 +4,19 @@ const prisma = new PrismaClient();
 // ✅ Create company
 exports.createCompany = async (req, res) => {
   try {
+
+    const consecutivo = await prisma.consecutive.create({
+        data: {
+          name: 'EMP_REQ_001',
+          description: 'Consecutivo para empresas',
+        }
+      });
+
+    var companyCreate = req.body;
+    companyCreate.consecutiveId = consecutivo.id;
+
     const company = await prisma.company.create({
-      data: req.body,
+      data: companyCreate,
     });
     res.status(201).json(company);
   } catch (error) {
