@@ -22,6 +22,7 @@ model User {
   lastNames String
   email     String  @unique
   password  String
+  advanceRequests    AdvanceRequest[]
   createdAt DateTime @default(now())
 }
 
@@ -49,6 +50,8 @@ model AdvanceRequest {
   statusId            Int
   status              Status   @relation(fields: [statusId], references: [id])
 
+  userId            Int
+  users              User   @relation(fields: [userId], references: [id])
   consecutive         String
   requestDate         DateTime
 

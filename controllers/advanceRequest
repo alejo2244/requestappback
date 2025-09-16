@@ -18,10 +18,45 @@ exports.createAdvanceRequest = async (req, res) => {
 
 // 📄 Get all requests
 exports.getAllAdvanceRequests = async (req, res) => {
-  const requests = await prisma.advanceRequest.findMany({
-    include: { company: true },
-  });
-  res.json(requests);
+  try {
+    const { userId } = req.params; // o req.query / req.body según cómo lo envíes
+
+    // 1️⃣ Buscar el usuario y su rol
+    const user = await prisma.user.findUnique({
+      where: { id: Number(userId) },
+      include: { rol: true }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    // 2️⃣ Armar el filtro según el rolId
+    let where = {};
+
+    if (user.rolId === 1) {
+      // Administrador → todas
+      where = {};
+    } else if (user.rolId === 3) {
+      // Aprobador → solo pendientes
+      where = { statusId: 1 };
+    } else if (user.rolId === 2) {
+      // Solicitante → solo las suyas
+      where = { userId: user.id };
+    }
+
+    // 3️⃣ Consultar solicitudes con el filtro
+    const requests = await prisma.advanceRequest.findMany({
+      where,
+      include: { company: true },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(requests);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al obtener las solicitudes' });
+  }
 };
 
 // 🔍 Get one request by ID
@@ -265,7 +300,7 @@ function generarHTML(solicitud, logoUrl) {
             <div><strong>${solicitud.elaboroNombre}</strong></div>
             <div>Nombre:</div>
           </td>
-      
+
           <!-- Aprobó -->
           <td style="width: 50%; text-align: center; vertical-align: top; padding: 10px;">
             <div style="margin-bottom: 40px;">
@@ -279,7 +314,7 @@ function generarHTML(solicitud, logoUrl) {
           </td>
         </tr>
       </table>
-      
+
       <!-- Alertas en rojo -->
       <div style="color: red; font-size: 10px; margin-top: 20px; line-height: 1.4;">
         * Por favor diligenciar los campos sombreados de color gris<br>
