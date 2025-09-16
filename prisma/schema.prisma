@@ -97,7 +97,7 @@ model Rol {
 
 model Consecutive {
   id          Int               @id @default(autoincrement())
-  name        String            @unique
+  name        String            
   description String?
   Companies   Company[]  // Relación inversa
 }

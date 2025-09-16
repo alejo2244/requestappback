@@ -6,8 +6,8 @@ exports.createCompany = async (req, res) => {
   try {
     const consecutivo = await prisma.consecutive.create({
         data: {
-          name: 'EMP_REQ_001',
-          description: 'Consecutivo para empresas',
+          name: 'CONS_001',
+          description: 'Consecutivo para empresa ' + req.body.name,
         }
       });
 
