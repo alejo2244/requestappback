@@ -1,18 +1,58 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 // ✅ Create advance request
 exports.createAdvanceRequest = async (req, res) => {
   try {
-    const request = await prisma.advanceRequest.create({
+    const { companyId } = req.body;
+
+    // Buscar empresa
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+    });
+
+    if (!company) {
+      return res.status(404).json({ error: "Empresa no encontrada" });
+    }
+
+    const nitSuffix = company.taxId.slice(-4);
+
+    // Buscar última solicitud
+    const lastRequest = await prisma.advanceRequest.findFirst({
+      where: { companyId },
+      orderBy: { id: "desc" },
+    });
+
+    let nextNumber = 1;
+    if (lastRequest?.consecutive) {
+      const parts = lastRequest.consecutive.split("_CONS_");
+      console.log("📊 Partes consecutivo:", parts);
+
+      if (parts.length === 2) {
+        const lastNum = parseInt(parts[1], 10);
+        console.log("➡️ Último consecutivo numérico:", lastNum);
+        if (!isNaN(lastNum)) {
+          nextNumber = lastNum + 1;
+        }
+      }
+    }
+
+    const newConsecutive = `${nitSuffix}_CONS_${String(nextNumber).padStart(
+      3,
+      "0"
+    )}`;
+
+    const solicitud = await prisma.advanceRequest.create({
       data: {
         ...req.body,
-        requestDate: new Date(req.body.requestDate), // asegúrate que venga en formato válido
+        consecutive: newConsecutive,
+        requestDate: new Date(req.body.requestDate),
       },
     });
-    res.status(201).json(request);
+
+    res.status(201).json(solicitud);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: "Error al crear la solicitud" });
   }
 };
 
@@ -24,11 +64,11 @@ exports.getAllAdvanceRequests = async (req, res) => {
     // 1️⃣ Buscar el usuario y su rol
     const user = await prisma.user.findUnique({
       where: { id: Number(userId) },
-      include: { rol: true }
+      include: { rol: true },
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
     // 2️⃣ Armar el filtro según el rolId
@@ -49,13 +89,13 @@ exports.getAllAdvanceRequests = async (req, res) => {
     const requests = await prisma.advanceRequest.findMany({
       where,
       include: { company: true },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     res.json(requests);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Error al obtener las solicitudes' });
+    res.status(500).json({ error: "Error al obtener las solicitudes" });
   }
 };
 
@@ -66,7 +106,7 @@ exports.getAdvanceRequestById = async (req, res) => {
     where: { id: Number(id) },
     include: { company: true },
   });
-  if (!request) return res.status(404).json({ error: 'Request not found' });
+  if (!request) return res.status(404).json({ error: "Request not found" });
   res.json(request);
 };
 
@@ -89,7 +129,7 @@ exports.updateAdvanceRequestStatus = async (req, res) => {
   const { statusId } = req.body;
 
   if (!statusId) {
-    return res.status(400).json({ error: 'Missing statusId in request body.' });
+    return res.status(400).json({ error: "Missing statusId in request body." });
   }
 
   try {
@@ -97,7 +137,7 @@ exports.updateAdvanceRequestStatus = async (req, res) => {
       where: { id: Number(id) },
       data: { statusId: Number(statusId) },
     });
-    res.json({ message: 'Status updated successfully', updated });
+    res.json({ message: "Status updated successfully", updated });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -108,14 +148,14 @@ exports.deleteAdvanceRequest = async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.advanceRequest.delete({ where: { id: Number(id) } });
-    res.json({ message: 'Request deleted successfully' });
+    res.json({ message: "Request deleted successfully" });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
 
-const PDFDocument = require('pdfkit');
-const puppeteer = require('puppeteer');
+const PDFDocument = require("pdfkit");
+const puppeteer = require("puppeteer");
 
 function generarHTML(solicitud, logoUrl) {
   return `
@@ -207,7 +247,9 @@ function generarHTML(solicitud, logoUrl) {
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="font-weight: bold; padding: 6px; width: 40%;">CONSECUTIVO</td>
-                <td style="background-color: #d0d0d0; padding: 6px;">${solicitud.consecutive}</td>
+                <td style="background-color: #d0d0d0; padding: 6px;">${
+                  solicitud.consecutive
+                }</td>
               </tr>
             </table>
           </td>
@@ -226,7 +268,7 @@ function generarHTML(solicitud, logoUrl) {
               <tr>
                 <td style="font-weight: bold; padding: 6px; width: 40%;" rowspan="2">FECHA</td>
                 <td style="padding: 6px;" rowspan="2">
-                  ${new Date(solicitud.requestDate).toLocaleDateString('es-CO')}
+                  ${new Date(solicitud.requestDate).toLocaleDateString("es-CO")}
                 </td>
               </tr>
             </table>
@@ -263,11 +305,17 @@ function generarHTML(solicitud, logoUrl) {
         <tr>
           <td class="field">${solicitud.costCenter}</td>
           <td class="field">${solicitud.concept}</td>
-          <td class="field">$${solicitud.baseAmount.toLocaleString('es-CO')}</td>
-          <td class="field">$${solicitud.vatTotal.toLocaleString('es-CO')}</td>
-          <td class="field">$${solicitud.totalAdvance.toLocaleString('es-CO')}</td>
+          <td class="field">$${solicitud.baseAmount.toLocaleString(
+            "es-CO"
+          )}</td>
+          <td class="field">$${solicitud.vatTotal.toLocaleString("es-CO")}</td>
+          <td class="field">$${solicitud.totalAdvance.toLocaleString(
+            "es-CO"
+          )}</td>
           <td class="field">${solicitud.approvedPercentage}%</td>
-          <td class="field">$${solicitud.amountToTransfer.toLocaleString('es-CO')}</td>
+          <td class="field">$${solicitud.amountToTransfer.toLocaleString(
+            "es-CO"
+          )}</td>
         </tr>
       </table>
 
@@ -275,9 +323,11 @@ function generarHTML(solicitud, logoUrl) {
       <table class="obs-table">
         <tr>
           <td class="obs-label">OBSERVACIONES</td>
-          <td class="obs-field">${solicitud.notes || ''}</td>
+          <td class="obs-field">${solicitud.notes || ""}</td>
           <td class="obs-label">VALOR A GIRAR</td>
-          <td class="obs-field">$${solicitud.amountToTransfer.toLocaleString('es-CO')}</td>
+          <td class="obs-field">$${solicitud.amountToTransfer.toLocaleString(
+            "es-CO"
+          )}</td>
         </tr>
         <tr>
           <td class="obs-label">RESPONSABLE</td>
@@ -336,24 +386,31 @@ exports.descargarPDF = async (req, res) => {
   const { id } = req.params;
   const solicitud = await prisma.advanceRequest.findUnique({
     where: { id: Number(id) },
-    include: { company: true }
+    include: { company: true },
   });
-  if (!solicitud) return res.status(404).json({ error: 'Solicitud no encontrada' });
+  if (!solicitud)
+    return res.status(404).json({ error: "Solicitud no encontrada" });
 
-  const html = generarHTML(solicitud, "https://drive.google.com/file/d/1i3E2G6u_zjMj5Eaz9AFu-Wf6JacL84Sj/view?usp=drive_link");
+  const html = generarHTML(
+    solicitud,
+    "https://drive.google.com/file/d/1i3E2G6u_zjMj5Eaz9AFu-Wf6JacL84Sj/view?usp=drive_link"
+  );
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
+  await page.setContent(html, { waitUntil: "networkidle0" });
 
   const pdfBuffer = await page.pdf({
-    format: 'A4',
+    format: "A4",
     printBackground: true,
     landscape: true, // 👈 Esto pone la hoja en horizontal
-    margin: { top: '40px', bottom: '40px', left: '40px', right: '40px' }
+    margin: { top: "40px", bottom: "40px", left: "40px", right: "40px" },
   });
   await browser.close();
 
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename=anticipo_${solicitud.consecutive}.pdf`);
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename=anticipo_${solicitud.consecutive}.pdf`
+  );
   res.send(pdfBuffer);
 };

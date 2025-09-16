@@ -34,6 +34,7 @@ model Company {
   email              String   @unique
   address            String?                 // Dirección
   logoUrl            String?                 // Company logo
+  phone              String?                 // Telefono company
   consecutiveId      Int
   consecutive        Consecutive @relation(fields: [consecutiveId], references: [id])
   sendConfirmation   Boolean  @default(false) // Checkbox
