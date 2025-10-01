@@ -78,6 +78,8 @@ const companyRoutes = require('./routes/companies.routes');
 app.use('/api/companies', companyRoutes);
 const advanceRequestRoutes = require('./routes/advancedRequest.routes');
 app.use('/api/advanceRequest', advanceRequestRoutes);
+const roleRoutes = require('./routes/roles.routes');
+app.use('/api/roles', roleRoutes);
 
 // 🏁 Puerto
 const PORT = process.env.PORT || 3001;

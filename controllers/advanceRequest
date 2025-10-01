@@ -26,11 +26,9 @@ exports.createAdvanceRequest = async (req, res) => {
     let nextNumber = 1;
     if (lastRequest?.consecutive) {
       const parts = lastRequest.consecutive.split("_CONS_");
-      console.log("📊 Partes consecutivo:", parts);
 
       if (parts.length === 2) {
         const lastNum = parseInt(parts[1], 10);
-        console.log("➡️ Último consecutivo numérico:", lastNum);
         if (!isNaN(lastNum)) {
           nextNumber = lastNum + 1;
         }
